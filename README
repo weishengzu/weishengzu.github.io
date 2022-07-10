@@ -1,0 +1,19 @@
+# 搭建node.js环境
+## 1.安装
+  * Linux环境
+  ```bash
+  $sudo pacman -S nodejs npm
+  ```
+  * Windows环境
+  官网下载并安装[node.js](https://nodejs.org/en/)
+
+## 2.配置npm国内镜像源
+  ```bash
+  $npm config set registry https://registry.npm.taobao.org
+  ```
+
+# 安装Hexo
+依次调用命令： 
+* npm install hexo
+* npm install
+* npm install hexo-deployer-git
