@@ -14,6 +14,6 @@
 
 # 安装Hexo
 依次调用命令： 
-* npm install hexo
+* npm install -g hexo-cli
 * npm install
 * npm install hexo-deployer-git
