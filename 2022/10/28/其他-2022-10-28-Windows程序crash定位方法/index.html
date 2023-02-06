@@ -1,0 +1,661 @@
+
+
+<!DOCTYPE html>
+<html lang="zh-CN" data-default-color-scheme=auto>
+
+
+
+<head>
+  <meta charset="UTF-8">
+  <link rel="apple-touch-icon" sizes="76x76" href="/img/fluid.png">
+  <link rel="icon" href="/img/fluid.png">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, shrink-to-fit=no">
+  <meta http-equiv="x-ua-compatible" content="ie=edge">
+  
+  <meta name="theme-color" content="#2f4154">
+  <meta name="author" content="weishengzu">
+  <meta name="keywords" content="">
+  
+    <meta name="description" content="记录Windows程序crash应当如何调试">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Windows程序crash定位方法">
+<meta property="og:url" content="http://example.com/2022/10/28/%E5%85%B6%E4%BB%96-2022-10-28-Windows%E7%A8%8B%E5%BA%8Fcrash%E5%AE%9A%E4%BD%8D%E6%96%B9%E6%B3%95/index.html">
+<meta property="og:site_name" content="wsz的个人博客">
+<meta property="og:description" content="记录Windows程序crash应当如何调试">
+<meta property="og:locale" content="zh_CN">
+<meta property="article:published_time" content="2022-10-28T12:13:41.000Z">
+<meta property="article:modified_time" content="2023-02-06T08:38:09.772Z">
+<meta property="article:author" content="weishengzu">
+<meta property="article:tag" content="c++">
+<meta property="article:tag" content="windows">
+<meta property="article:tag" content="pdb">
+<meta property="article:tag" content="cmake">
+<meta name="twitter:card" content="summary_large_image">
+  
+  
+    <meta name="referrer" content="no-referrer-when-downgrade">
+  
+  
+  <title>Windows程序crash定位方法 - wsz的个人博客</title>
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/twitter-bootstrap/4.6.1/css/bootstrap.min.css" />
+
+
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/github-markdown-css/4.0.0/github-markdown.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/hint.css/2.7.0/hint.min.css" />
+
+  <link  rel="stylesheet" href="https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.css" />
+
+
+
+<!-- 主题依赖的图标库，不要自行修改 -->
+<!-- Do not modify the link that theme dependent icons -->
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1749284_hj8rtnfg7um.css">
+
+
+
+<link rel="stylesheet" href="//at.alicdn.com/t/font_1736178_lbnruvf0jn.css">
+
+
+<link  rel="stylesheet" href="/css/main.css" />
+
+
+  <link id="highlight-css" rel="stylesheet" href="/css/highlight.css" />
+  
+    <link id="highlight-css-dark" rel="stylesheet" href="/css/highlight-dark.css" />
+  
+
+
+
+  
+<link rel="stylesheet" href="/css/custom.css">
+
+
+
+  <script id="fluid-configs">
+    var Fluid = window.Fluid || {};
+    Fluid.ctx = Object.assign({}, Fluid.ctx)
+    var CONFIG = {"hostname":"example.com","root":"/","version":"1.9.2","typing":{"enable":true,"typeSpeed":70,"cursorChar":"_","loop":false,"scope":[]},"anchorjs":{"enable":true,"element":"h1,h2,h3,h4,h5,h6","placement":"left","visible":"hover","icon":""},"progressbar":{"enable":true,"height_px":3,"color":"#29d","options":{"showSpinner":false,"trickleSpeed":100}},"code_language":{"enable":true,"default":"TEXT"},"copy_btn":true,"image_caption":{"enable":true},"image_zoom":{"enable":true,"img_url_replace":["",""]},"toc":{"enable":true,"placement":"right","headingSelector":"h1,h2,h3,h4,h5,h6","collapseDepth":0},"lazyload":{"enable":true,"loading_img":"/img/loading.gif","onlypost":false,"offset_factor":2},"web_analytics":{"enable":false,"follow_dnt":true,"baidu":null,"google":null,"gtag":null,"tencent":{"sid":null,"cid":null},"woyaola":null,"cnzz":null,"leancloud":{"app_id":null,"app_key":null,"server_url":null,"path":"window.location.pathname","ignore_local":false}},"search_path":"/local-search.xml"};
+
+    if (CONFIG.web_analytics.follow_dnt) {
+      var dntVal = navigator.doNotTrack || window.doNotTrack || navigator.msDoNotTrack;
+      Fluid.ctx.dnt = dntVal && (dntVal.startsWith('1') || dntVal.startsWith('yes') || dntVal.startsWith('on'));
+    }
+  </script>
+  <script  src="/js/utils.js" ></script>
+  <script  src="/js/color-schema.js" ></script>
+  
+
+
+  
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+
+<body>
+  
+
+  <header>
+    
+
+<div class="header-inner" style="height: 70vh;">
+  <nav id="navbar" class="navbar fixed-top  navbar-expand-lg navbar-dark scrolling-navbar">
+  <div class="container">
+    <a class="navbar-brand" href="/">
+      <strong>回首已陌然</strong>
+    </a>
+
+    <button id="navbar-toggler-btn" class="navbar-toggler" type="button" data-toggle="collapse"
+            data-target="#navbarSupportedContent"
+            aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+      <div class="animated-icon"><span></span><span></span><span></span></div>
+    </button>
+
+    <!-- Collapsible content -->
+    <div class="collapse navbar-collapse" id="navbarSupportedContent">
+      <ul class="navbar-nav ml-auto text-center">
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/">
+                <i class="iconfont icon-home-fill"></i>
+                首页
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/archives/">
+                <i class="iconfont icon-archive-fill"></i>
+                归档
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/categories/">
+                <i class="iconfont icon-category-fill"></i>
+                分类
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/tags/">
+                <i class="iconfont icon-tags-fill"></i>
+                标签
+              </a>
+            </li>
+          
+        
+          
+          
+          
+          
+            <li class="nav-item">
+              <a class="nav-link" href="/about/">
+                <i class="iconfont icon-user-fill"></i>
+                关于
+              </a>
+            </li>
+          
+        
+        
+          <li class="nav-item" id="search-btn">
+            <a class="nav-link" target="_self" href="javascript:;" data-toggle="modal" data-target="#modalSearch" aria-label="Search">
+              &nbsp;<i class="iconfont icon-search"></i>&nbsp;
+            </a>
+          </li>
+          
+        
+        
+          <li class="nav-item" id="color-toggle-btn">
+            <a class="nav-link" target="_self" href="javascript:;" aria-label="Color Toggle">&nbsp;<i
+                class="iconfont icon-dark" id="color-toggle-icon"></i>&nbsp;</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+</nav>
+
+  
+
+<div id="banner" class="banner" parallax=true
+     style="background: url('/image/wallhaven-nmxdmm.png') no-repeat center center; background-size: cover;">
+  <div class="full-bg-img">
+    <div class="mask flex-center" style="background-color: rgba(0, 0, 0, 0.3)">
+      <div class="banner-text text-center fade-in-up">
+        <div class="h2">
+          
+            <span id="subtitle" data-typed-text="Windows程序crash定位方法"></span>
+          
+        </div>
+
+        
+          
+  <div class="mt-3">
+    
+    
+      <span class="post-meta">
+        <i class="iconfont icon-date-fill" aria-hidden="true"></i>
+        <time datetime="2022-10-28 20:13" pubdate>
+          2022年10月28日 晚上
+        </time>
+      </span>
+    
+  </div>
+
+  <div class="mt-1">
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-chart"></i>
+        
+          2.3k 字
+        
+      </span>
+    
+
+    
+      <span class="post-meta mr-2">
+        <i class="iconfont icon-clock-fill"></i>
+        
+        
+        
+          19 分钟
+        
+      </span>
+    
+
+    
+    
+      
+        <span id="busuanzi_container_page_pv" style="display: none">
+          <i class="iconfont icon-eye" aria-hidden="true"></i>
+          <span id="busuanzi_value_page_pv"></span> 次
+        </span>
+        
+      
+    
+  </div>
+
+
+        
+      </div>
+
+      
+    </div>
+  </div>
+</div>
+
+</div>
+
+  </header>
+
+  <main>
+    
+      
+
+<div class="container-fluid nopadding-x">
+  <div class="row nomargin-x">
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+
+    </div>
+
+    <div class="col-lg-8 nopadding-x-md">
+      <div class="container nopadding-x-md" id="board-ctn">
+        <div id="board">
+          <article class="post-content mx-auto">
+            <!-- SEO header -->
+            <h1 style="display: none">Windows程序crash定位方法</h1>
+            
+            
+              <div class="markdown-body">
+                
+                <h2 id="前言"><a href="#前言" class="headerlink" title="前言"></a>前言</h2><p>由于客户环境复杂多样, 发布的软件，经常会出现在本地测试无法重现的问题，当发生这种情况时，我们怎么去排查，怎么去分析原因呢？<br>作为 Windows 软件开发人员，我们都广泛使用 Visual Studio 或 WinDbg 来进入我们的代码、设置断点、观察变量以及执行许多其他与应用程序调试相关的有用任务，我们知道存在一种内部机制，以便调试器能够将源代码映射到二进制文件并进入许多可用的运行时库。如果用户的应用程序崩溃时，我们能够获取到必要的崩溃信息做为输入，模拟在本地开启调试模式时的应用程序crash，直接定位到程序崩溃调用堆栈并定位到具体的实现文件与代码行号，这样排查crash问题是不是要容易的多？<br>程序崩溃时直接定位到源代码位置需要三个充要条件：</p>
+<ul>
+<li><strong>一份应用程序发布时完全一致的源代码</strong></li>
+<li><strong>应用程序Crash时生成的dump文件</strong></li>
+<li><strong>应用程序编译产生的PDB(Program Databasse)文件</strong></li>
+</ul>
+<h3 id="关于Dump文件"><a href="#关于Dump文件" class="headerlink" title="关于Dump文件"></a>关于Dump文件</h3><p>dump文件是一个进程或者系统在某一个给定的时间的快照，<strong>文件中包含了程序运行的模块信息、线程信息、堆栈调用信息、异常信息等数据</strong>。这个文件由发生程序崩溃问题的用户机器上获取，至于这个文件如何产生以及收集不在本文讨论范围。</p>
+<h3 id="关于PDB文件"><a href="#关于PDB文件" class="headerlink" title="关于PDB文件"></a>关于PDB文件</h3><p>PDB文件主要会存储对应模块(dll或者exe)内部的所有符号，以及符号对应的地址、文件名和行号，正是归功于这个文件，我们才能在debug的时候看到程序当前执行相对应的代码和监视到一些变量。C++ PDB 文件包含了以下信息：</p>
+<ul>
+<li>公有函数，私有函数和静态函数的地址</li>
+<li>全局变量的名称和地址</li>
+<li>参数和局部变量的名称以及栈上的偏移量</li>
+<li>类，结构体以及数据定义的类型信息</li>
+<li>FPO（Frame Pointer Omission） 数据</li>
+<li>源文件的文件名及行信息。</li>
+</ul>
+<h4 id="PDB文件什么时候产生"><a href="#PDB文件什么时候产生" class="headerlink" title="PDB文件什么时候产生"></a>PDB文件什么时候产生</h4><p>PDB文件是在我们编译工程的时候产生的，它是和对应的模块(exe或dll)一起生成出来的。我们一般可能不会意识到PDB文件的重要性，因为如果只是我们本地进行开发，我们总是能够进行调试。这里首先定义两个概念：</p>
+<ul>
+<li>**Private Build(本地编译)**：在你本机开发环境中的编译。</li>
+<li>**Public Build(官方编译)**：在编译服务器上的编译。</li>
+</ul>
+<p>这两种编译的区分很重要，调试本地编译往往很简单，因为在编译出来的机器上进行调试所有必要的文件都在该在的地方，但是问题往往出现在官方编译中。官方编译至少需要有一个地方（Symbol Server）来存放编译出来的二进制及 PDB 文件。这样当某个版本发现任何问题，我们可以获取到对应的 PDB 文件进行调试。没有匹配的 PDB 文件，调试器几乎不可能完成调试任务，或者你将付出高昂的代价才能解决问题。<br>如果你的应用程序需要发布或者当作产品卖得，你就需要特别注意要保存你发布出去的那个版本的PDB文件和源文件。<strong>注意：你只有一次机会保存着发布出去的PDB文件，如果你弄丢了将无法找回（原因下面说明）</strong></p>
+<h4 id="Cmake项目如何生成PDB"><a href="#Cmake项目如何生成PDB" class="headerlink" title="Cmake项目如何生成PDB"></a>Cmake项目如何生成PDB</h4><p>当Cmake项目的CMAKE_BUILD_TYPE为Debug时Windows环境下编译默认会生成PDB文件，Release则默认不生成PDB文件。有时希望编译Release版本时同样生成PDB文件又该如何做呢？可以使用以下两种方法：<br>1.设置CMAKE_BUILD_TYPE&#x3D;RelWithDebInfo<br>2.在CMakeLists.txt中打开生成PDB的开关，一般可以无脑设置如下</p>
+<figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-meta">#symbol file for debug</span><br><span class="hljs-keyword">if</span> (CMAKE_BUILD_TYPE MATCHES Release)<br>    <span class="hljs-built_in">set</span>(CMAKE_CXX_FLAGS_RELEASE <span class="hljs-string">&quot;$&#123;CMAKE_CXX_FLAGS_RELEASE&#125; /Zi&quot;</span>) #编译器生成调试信息<br>    <span class="hljs-built_in">set</span>(CMAKE_SHARED_LINKER_FLAGS_RELEASE <span class="hljs-string">&quot;$&#123;CMAKE_SHARED_LINKER_FLAGS_RELEASE&#125; /DEBUG /OPT:REF /OPT:ICF&quot;</span>) #链接器生成dll时加入调试信息<br>    <span class="hljs-built_in">set</span>(CMAKE_EXE_LINKER_FLAGS_RELEASE <span class="hljs-string">&quot;$&#123;CMAKE_SHARED_LINKER_FLAGS_RELEASE&#125; /DEBUG /OPT:REF /OPT:ICF&quot;</span>) #链接器生成exe时加入调试信息<br><span class="hljs-built_in">endif</span>()<br></code></pre></td></tr></table></figure>
+
+<h4 id="为什么只有一次机会保存着发布出去的PDB文件"><a href="#为什么只有一次机会保存着发布出去的PDB文件" class="headerlink" title="为什么只有一次机会保存着发布出去的PDB文件"></a>为什么只有一次机会保存着发布出去的PDB文件</h4><p>也许你会认为如果拿一份一模一样的源代码重新编译生成一个PDB文件，然后用来调试就行了。我也曾经这么认为过，直到有一天………<br>直接的原因是因为VS生成出来的二进制文件的Header部分里面包含了它对应的PDB的GUID，PDB也包含一个GUIID，这两个GUID是在编译的时候添加进去的。VS调试器在载入PDB的时候会去比对这个两个GUID，如果不一致，那么就不能使用。当然上面那个原因只是一个表面现象，根本原因是即使两份一模一样的代码编译器编译出来的文件可能是不一样的。因为编译器在编译的时候会对代码进行优化，而同一份代码可能会有很多种优化的方法，它会根据当时的具体机器的环境等情况选择一个最快的生成方法。所以它生成出来的文件有可能是不一样的！所以如果连生成出来的文件都不一样，那么原来的那个PDB里面的符号对应的地址也就没有意义了。<br>所以，<strong>发布版本时一定要保留一份打包机器编译产生的PDB文件，同时在git上打好对应的Tag以便定位对应版本的源代码。</strong></p>
+
+                
+              </div>
+            
+            <hr/>
+            <div>
+              <div class="post-metas my-3">
+  
+  
+    <div class="post-meta">
+      <i class="iconfont icon-tags"></i>
+      
+        <a href="/tags/c/">#c++</a>
+      
+        <a href="/tags/windows/">#windows</a>
+      
+        <a href="/tags/pdb/">#pdb</a>
+      
+        <a href="/tags/cmake/">#cmake</a>
+      
+    </div>
+  
+</div>
+
+
+              
+  
+
+  <div class="license-box my-3">
+    <div class="license-title">
+      <div>Windows程序crash定位方法</div>
+      <div>http://example.com/2022/10/28/其他-2022-10-28-Windows程序crash定位方法/</div>
+    </div>
+    <div class="license-meta">
+      
+        <div class="license-meta-item">
+          <div>作者</div>
+          <div>weishengzu</div>
+        </div>
+      
+      
+        <div class="license-meta-item license-meta-date">
+          <div>发布于</div>
+          <div>2022年10月28日</div>
+        </div>
+      
+      
+      <div class="license-meta-item">
+        <div>许可协议</div>
+        <div>
+          
+            
+            
+              <a target="_blank" href="https://creativecommons.org/licenses/by/4.0/">
+              <span class="hint--top hint--rounded" aria-label="BY - 署名">
+                <i class="iconfont icon-by"></i>
+              </span>
+              </a>
+            
+          
+        </div>
+      </div>
+    </div>
+    <div class="license-icon iconfont"></div>
+  </div>
+
+
+
+              
+                <div class="post-prevnext my-3">
+                  <article class="post-prev col-6">
+                    
+                    
+                  </article>
+                  <article class="post-next col-6">
+                    
+                    
+                      <a href="/2022/10/05/Git-2022-10-05-Git%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4%E6%B8%85%E5%8D%95/" title="Git常用命令清单">
+                        <span class="hidden-mobile">Git常用命令清单</span>
+                        <span class="visible-mobile">下一篇</span>
+                        <i class="iconfont icon-arrowright"></i>
+                      </a>
+                    
+                  </article>
+                </div>
+              
+            </div>
+
+            
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="side-col d-none d-lg-block col-lg-2">
+      
+  <aside class="sidebar" style="margin-left: -1rem">
+    <div id="toc">
+  <p class="toc-header"><i class="iconfont icon-list"></i>&nbsp;目录</p>
+  <div class="toc-body" id="toc-body"></div>
+</div>
+
+
+
+  </aside>
+
+
+    </div>
+  </div>
+</div>
+
+
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+  
+
+
+
+
+
+
+
+    
+
+    
+      <a id="scroll-top-button" aria-label="TOP" href="#" role="button">
+        <i class="iconfont icon-arrowup" aria-hidden="true"></i>
+      </a>
+    
+
+    
+      <div class="modal fade" id="modalSearch" tabindex="-1" role="dialog" aria-labelledby="ModalLabel"
+     aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-lg" role="document">
+    <div class="modal-content">
+      <div class="modal-header text-center">
+        <h4 class="modal-title w-100 font-weight-bold">搜索</h4>
+        <button type="button" id="local-search-close" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
+      </div>
+      <div class="modal-body mx-3">
+        <div class="md-form mb-5">
+          <input type="text" id="local-search-input" class="form-control validate">
+          <label data-error="x" data-success="v" for="local-search-input">关键词</label>
+        </div>
+        <div class="list-group" id="local-search-result"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+    
+
+    
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+  
+    <div class="footer-content">
+       <a href="https://hexo.io" target="_blank" rel="nofollow noopener"><span>Hexo</span></a> <i class="iconfont icon-love"></i> <a href="https://github.com/fluid-dev/hexo-theme-fluid" target="_blank" rel="nofollow noopener"><span>Fluid</span></a> 
+    </div>
+  
+  
+    <div class="statistics">
+  
+  
+
+  
+    
+      <span id="busuanzi_container_site_pv" style="display: none">
+        总访问量 
+        <span id="busuanzi_value_site_pv"></span>
+         次
+      </span>
+    
+    
+      <span id="busuanzi_container_site_uv" style="display: none">
+        总访客数 
+        <span id="busuanzi_value_site_uv"></span>
+         人
+      </span>
+    
+    
+  
+</div>
+
+  
+  
+  
+</div>
+
+  </footer>
+
+  <!-- Scripts -->
+  
+  <script  src="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.js" ></script>
+  <link  rel="stylesheet" href="https://lib.baomitu.com/nprogress/0.2.0/nprogress.min.css" />
+
+  <script>
+    NProgress.configure({"showSpinner":false,"trickleSpeed":100})
+    NProgress.start()
+    window.addEventListener('load', function() {
+      NProgress.done();
+    })
+  </script>
+
+
+<script  src="https://lib.baomitu.com/jquery/3.6.0/jquery.min.js" ></script>
+<script  src="https://lib.baomitu.com/twitter-bootstrap/4.6.1/js/bootstrap.min.js" ></script>
+<script  src="/js/events.js" ></script>
+<script  src="/js/plugins.js" ></script>
+
+
+  <script  src="https://lib.baomitu.com/typed.js/2.0.12/typed.min.js" ></script>
+  <script>
+    (function (window, document) {
+      var typing = Fluid.plugins.typing;
+      var subtitle = document.getElementById('subtitle');
+      if (!subtitle || !typing) {
+        return;
+      }
+      var text = subtitle.getAttribute('data-typed-text');
+      
+        typing(text);
+      
+    })(window, document);
+  </script>
+
+
+
+
+  
+    <script  src="/js/img-lazyload.js" ></script>
+  
+
+
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/tocbot/4.18.2/tocbot.min.js', function() {
+    var toc = jQuery('#toc');
+    if (toc.length === 0 || !window.tocbot) { return; }
+    var boardCtn = jQuery('#board-ctn');
+    var boardTop = boardCtn.offset().top;
+
+    window.tocbot.init({
+      tocSelector     : '#toc-body',
+      contentSelector : '.markdown-body',
+      headingSelector : CONFIG.toc.headingSelector || 'h1,h2,h3,h4,h5,h6',
+      linkClass       : 'tocbot-link',
+      activeLinkClass : 'tocbot-active-link',
+      listClass       : 'tocbot-list',
+      isCollapsedClass: 'tocbot-is-collapsed',
+      collapsibleClass: 'tocbot-is-collapsible',
+      collapseDepth   : CONFIG.toc.collapseDepth || 0,
+      scrollSmooth    : true,
+      headingsOffset  : -boardTop
+    });
+    if (toc.find('.toc-list-item').length > 0) {
+      toc.css('visibility', 'visible');
+    }
+  });
+</script>
+
+
+  <script src=https://lib.baomitu.com/clipboard.js/2.0.10/clipboard.min.js></script>
+
+  <script>Fluid.plugins.codeWidget();</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/anchor-js/4.3.1/anchor.min.js', function() {
+    window.anchors.options = {
+      placement: CONFIG.anchorjs.placement,
+      visible  : CONFIG.anchorjs.visible
+    };
+    if (CONFIG.anchorjs.icon) {
+      window.anchors.options.icon = CONFIG.anchorjs.icon;
+    }
+    var el = (CONFIG.anchorjs.element || 'h1,h2,h3,h4,h5,h6').split(',');
+    var res = [];
+    for (var item of el) {
+      res.push('.markdown-body > ' + item.trim());
+    }
+    if (CONFIG.anchorjs.placement === 'left') {
+      window.anchors.options.class = 'anchorjs-link-left';
+    }
+    window.anchors.add(res.join(', '));
+  });
+</script>
+
+
+  
+<script>
+  Fluid.utils.createScript('https://lib.baomitu.com/fancybox/3.5.7/jquery.fancybox.min.js', function() {
+    Fluid.plugins.fancyBox();
+  });
+</script>
+
+
+  <script>Fluid.plugins.imageCaption();</script>
+
+  <script  src="/js/local-search.js" ></script>
+
+  <script defer src="https://busuanzi.ibruce.info/busuanzi/2.3/busuanzi.pure.mini.js" ></script>
+
+
+
+
+
+<!-- 主题的启动项，将它保持在最底部 -->
+<!-- the boot of the theme, keep it at the bottom -->
+<script  src="/js/boot.js" ></script>
+
+
+  
+
+  <noscript>
+    <div class="noscript-warning">博客在允许 JavaScript 运行的环境下浏览效果更佳</div>
+  </noscript>
+</body>
+</html>
