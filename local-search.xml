@@ -88,6 +88,29 @@
   
   
   <entry>
+    <title>在C++中如何调用qml方法</title>
+    <link href="/2022/07/16/Qt-2022-07-16-C-%E8%B0%83%E7%94%A8qml/"/>
+    <url>/2022/07/16/Qt-2022-07-16-C-%E8%B0%83%E7%94%A8qml/</url>
+    
+    <content type="html"><![CDATA[<p>所有QML的函数(方法)都暴露在元对象系统中，并且在C++中可以使用<a href="https://doc.qt.io/qt-5/qmetaobject.html#invokeMethod">QMetaObject::invokeMethod</a>调用，若函数存在返回值则<strong>可指定参数的类型和冒号字符后的返回值</strong>，如下面的代码段所示:</p><ul><li><p>qml代码</p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-comment">// MyItem.qml</span><br><span class="hljs-keyword">import</span> QtQuick <span class="hljs-number">2.0</span><br><br>Item &#123;<br>    <span class="hljs-function">function <span class="hljs-title">myQmlFunction</span><span class="hljs-params">(msg: string)</span> : string &#123;</span><br>        console.<span class="hljs-built_in">log</span>(<span class="hljs-string">&quot;Got message:&quot;</span>, msg)<br>        <span class="hljs-keyword">return</span> <span class="hljs-string">&quot;some return value&quot;</span><br>    &#125;<br>&#125;<br></code></pre></td></tr></table></figure></li><li><p>c++代码</p><figure class="highlight cpp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><code class="hljs cpp"><span class="hljs-comment">// main.cpp</span><br>QQmlEngine engine;<br><span class="hljs-function">QQmlComponent <span class="hljs-title">component</span><span class="hljs-params">(&amp;engine, <span class="hljs-string">&quot;MyItem.qml&quot;</span>)</span></span>;<br>QObject *object = component.<span class="hljs-built_in">create</span>();<br><br>QString returnedValue;<br>QString msg = <span class="hljs-string">&quot;Hello from C++&quot;</span>;<br>QMetaObject::<span class="hljs-built_in">invokeMethod</span>(object, <span class="hljs-string">&quot;myQmlFunction&quot;</span>,<br>        <span class="hljs-built_in">Q_RETURN_ARG</span>(QString, returnedValue),<br>        <span class="hljs-built_in">Q_ARG</span>(QString, msg));<br><br><span class="hljs-built_in">qDebug</span>() &lt;&lt; <span class="hljs-string">&quot;QML function returned:&quot;</span> &lt;&lt; returnedValue;<br><span class="hljs-keyword">delete</span> object;<br></code></pre></td></tr></table></figure></li></ul><p>注：若qml中fuction函数参数及返回值未指定类型则<a href="https://doc.qt.io/archives/qt-5.10/qmetaobject.html#invokeMethod">QMetaObject::invokeMethod</a> ()的<a href="https://doc.qt.io/archives/qt-5.10/qmetaobject.html#Q_RETURN_ARG">Q_RETURN_ARG</a> () 和<a href="https://doc.qt.io/archives/qt-5.10/qmetaobject.html#Q_ARG">Q_ARG</a> () 参数必须指定为<a href="https://doc.qt.io/archives/qt-5.10/qvariant.html">QVariant</a>类型，因为这是用于 QML 方法参数和返回值的通用数据类型，参考：<a href="https://doc.qt.io/archives/qt-5.10/qtqml-cppintegration-interactqmlfromcpp.html">https://doc.qt.io/archives/qt-5.10/qtqml-cppintegration-interactqmlfromcpp.html</a></p>]]></content>
+    
+    
+    
+    <tags>
+      
+      <tag>c++</tag>
+      
+      <tag>qt</tag>
+      
+      <tag>qml</tag>
+      
+    </tags>
+    
+  </entry>
+  
+  
+  
+  <entry>
     <title>Effective /More Effective C++阅读笔记</title>
     <link href="/2022/07/08/C-2022-07-08-Effective-C-%E9%98%85%E8%AF%BB%E7%AC%94%E8%AE%B0/"/>
     <url>/2022/07/08/C-2022-07-08-Effective-C-%E9%98%85%E8%AF%BB%E7%AC%94%E8%AE%B0/</url>
