@@ -24,7 +24,7 @@
 <meta property="og:description" content="记录Windows程序crash应当如何调试">
 <meta property="og:locale" content="zh_CN">
 <meta property="article:published_time" content="2022-10-28T12:13:41.000Z">
-<meta property="article:modified_time" content="2023-02-06T08:38:09.772Z">
+<meta property="article:modified_time" content="2023-04-04T08:43:49.829Z">
 <meta property="article:author" content="weishengzu">
 <meta property="article:tag" content="c++">
 <meta property="article:tag" content="windows">
@@ -298,8 +298,8 @@
 </ul>
 <h4 id="PDB文件什么时候产生"><a href="#PDB文件什么时候产生" class="headerlink" title="PDB文件什么时候产生"></a>PDB文件什么时候产生</h4><p>PDB文件是在我们编译工程的时候产生的，它是和对应的模块(exe或dll)一起生成出来的。我们一般可能不会意识到PDB文件的重要性，因为如果只是我们本地进行开发，我们总是能够进行调试。这里首先定义两个概念：</p>
 <ul>
-<li>**Private Build(本地编译)**：在你本机开发环境中的编译。</li>
-<li>**Public Build(官方编译)**：在编译服务器上的编译。</li>
+<li><strong>Private Build(本地编译)</strong> :在你本机开发环境中的编译</li>
+<li><strong>Public Build(官方编译)</strong> :在编译服务器上的编译</li>
 </ul>
 <p>这两种编译的区分很重要，调试本地编译往往很简单，因为在编译出来的机器上进行调试所有必要的文件都在该在的地方，但是问题往往出现在官方编译中。官方编译至少需要有一个地方（Symbol Server）来存放编译出来的二进制及 PDB 文件。这样当某个版本发现任何问题，我们可以获取到对应的 PDB 文件进行调试。没有匹配的 PDB 文件，调试器几乎不可能完成调试任务，或者你将付出高昂的代价才能解决问题。<br>如果你的应用程序需要发布或者当作产品卖得，你就需要特别注意要保存你发布出去的那个版本的PDB文件和源文件。<strong>注意：你只有一次机会保存着发布出去的PDB文件，如果你弄丢了将无法找回（原因下面说明）</strong></p>
 <h4 id="Cmake项目如何生成PDB"><a href="#Cmake项目如何生成PDB" class="headerlink" title="Cmake项目如何生成PDB"></a>Cmake项目如何生成PDB</h4><p>当Cmake项目的CMAKE_BUILD_TYPE为Debug时Windows环境下编译默认会生成PDB文件，Release则默认不生成PDB文件。有时希望编译Release版本时同样生成PDB文件又该如何做呢？可以使用以下两种方法：<br>1.设置CMAKE_BUILD_TYPE&#x3D;RelWithDebInfo<br>2.在CMakeLists.txt中打开生成PDB的开关，一般可以无脑设置如下</p>
